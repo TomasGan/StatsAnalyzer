@@ -55,7 +55,7 @@ def hypothesis_testing_diff_means_unknown_std(data1=None, data2=None, sample1_me
     else:
         raise ValueError("Insufficient data provided to perform hypothesis testing.")
 
-    if sample1_std**2 == sample2_std**2:
+    if equal_var:
         # Calculate the pooled standard deviation
         pooled_std = np.sqrt(((sample1_size - 1) * sample1_std ** 2 + (sample2_size - 1) * sample2_std ** 2) / (
                 sample1_size + sample2_size - 2))

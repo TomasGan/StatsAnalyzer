@@ -32,10 +32,10 @@ def linear_regression_analysis(data1, data2, x_pred=None, alpha=0.05):
     # Prediction interval for a specific value of x
     if x_pred is not None and type(x_pred) is not str:
         x_pred = np.array(x_pred)
-        y_pred_pred = b0 + b1 * x_pred
+        y_pred_pred = b0 + round(b1, 3) * x_pred
         se_pred = standard_error_estimate * np.sqrt(
             1 + (1 / n) + ((n * ((x_pred - x_mean) ** 2)) / ((n * np.sum(x ** 2)) - (np.sum(x)) ** 2)))
-        t_value = t.ppf(1 - alpha / 2, n - 2)
+        t_value = round(t.ppf(1 - alpha / 2, n - 2), 3)
         margin_of_error = t_value * se_pred
 
         pred_interval_lower = y_pred_pred - margin_of_error

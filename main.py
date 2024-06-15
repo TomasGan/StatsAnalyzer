@@ -58,6 +58,7 @@ class HypothesisTestingApp(QMainWindow):
         self.input_fields = {}
 
         self.create_widgets()
+        self.apply_stylesheet()
 
     def create_widgets(self):
         # Test selection dropdown
@@ -144,6 +145,7 @@ class HypothesisTestingApp(QMainWindow):
             elif test_type == 't_test_diff_means':
                 self.add_input_field("sample1_std", "Sample Std Dev Group 1")
                 self.add_input_field("sample2_std", "Sample Std Dev Group 2")
+                self.add_input_field("equal_var", "Population Variance True/False", default="True")
                 self.add_data_input_fields()
         elif test_type == 'paired_t_test':
             self.create_paired_test_form()
@@ -376,7 +378,7 @@ class HypothesisTestingApp(QMainWindow):
                  or test_type in ['f_test_two_sample'])
                     and var_name == "data"):
                 continue
-            if var_name == 'observed':
+            if var_name == 'observed' and test_type in 'chi_square_independence':
                 params[var_name] = widget.toPlainText()
             if var_name and (test_type != 'chi_square_independence'):
                 try:
@@ -476,6 +478,39 @@ class HypothesisTestingApp(QMainWindow):
 
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
+
+    def apply_stylesheet(self):
+        stylesheet = """
+            QWidget {
+                font-size: 14px;
+            }
+            QMainWindow {
+                background-color: #f0f0f0;
+            }
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border-radius: 5px;
+                padding: 10px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+            QLabel {
+                font-weight: bold;
+            }
+            QLineEdit, QTextEdit {
+                padding: 5px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+            }
+            QComboBox {
+                padding: 5px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+            }
+        """
+        self.setStyleSheet(stylesheet)
 
     def plot_result(self, result, test_type, params):
         self.canvas.axes.cla()
@@ -623,7 +658,7 @@ class HypothesisTestingApp(QMainWindow):
                 df = result['degrees_of_freedom']
 
                 # Plot t distribution
-                x = np.linspace(-4, 4, 1000)
+                x = np.linspace(-8, 8, 1000)
                 y = t.pdf(x, df)
                 self.canvas.axes.plot(x, y, label=f'T Distribution (df={df})')
 
@@ -671,10 +706,18 @@ class HypothesisTestingApp(QMainWindow):
             self.canvas.axes.scatter(x, y, color='blue', label='Data Points')
             self.canvas.axes.plot(x, y_pred, color='red', label=f'Regression Line: y = {b0:.2f} + {b1:.2f}x')
 
-            if x_pred is not None and x_pred != "":
+            if x_pred is not None and x_pred != "" and b1 > 0:
                 x = np.sort(x)
                 y_pred_upper = np.sort(y_pred_upper)
                 y_pred_lower = np.sort(y_pred_lower)
+                self.canvas.axes.fill_between(x, y_pred_upper, y_pred_lower, color='gray', alpha=0.2,
+                                              label='Prediction Interval')
+                self.canvas.axes.plot(x, y_pred_lower, color='green', linestyle='--')
+                self.canvas.axes.plot(x, y_pred_upper, color='green', linestyle='--')
+            elif b1 < 0:
+                x = np.sort(x)
+                y_pred_upper = -np.sort(-y_pred_upper)
+                y_pred_lower = -np.sort(-y_pred_lower)
                 self.canvas.axes.fill_between(x, y_pred_upper, y_pred_lower, color='gray', alpha=0.2,
                                               label='Prediction Interval')
                 self.canvas.axes.plot(x, y_pred_lower, color='green', linestyle='--')
@@ -689,19 +732,19 @@ class HypothesisTestingApp(QMainWindow):
             self.canvas.axes.legend(loc='upper left')
 
             # Display deviations
-            total_deviation = result['total_deviation']
-            explained_deviation = result['explained_deviation']
-            unexplained_deviation = result['unexplained_deviation']
-            correlation_coefficient = result['correlation_coefficient']
-            determination_coefficient = result['determination_coefficient']
-            standard_error_estimate = result['standard_error_estimate']
+            # total_deviation = result['total_deviation']
+            # explained_deviation = result['explained_deviation']
+            # unexplained_deviation = result['unexplained_deviation']
+            # correlation_coefficient = result['correlation_coefficient']
+            # determination_coefficient = result['determination_coefficient']
+            # standard_error_estimate = result['standard_error_estimate']
 
-            self.result_text.append(f"Total Deviation: {total_deviation:.2f}")
-            self.result_text.append(f"Explained Deviation: {explained_deviation:.2f}")
-            self.result_text.append(f"Unexplained Deviation: {unexplained_deviation:.2f}")
-            self.result_text.append(f"Correlation Coefficient: {correlation_coefficient:.2f}")
-            self.result_text.append(f"Determination Coefficient: {determination_coefficient:.2f}")
-            self.result_text.append(f"Standard Error of Estimate: {standard_error_estimate:.2f}")
+            # self.result_text.append(f"Total Deviation: {total_deviation:.2f}")
+            # self.result_text.append(f"Explained Deviation: {explained_deviation:.2f}")
+            # self.result_text.append(f"Unexplained Deviation: {unexplained_deviation:.2f}")
+            # self.result_text.append(f"Correlation Coefficient: {correlation_coefficient:.2f}")
+            # self.result_text.append(f"Determination Coefficient: {determination_coefficient:.2f}")
+            # self.result_text.append(f"Standard Error of Estimate: {standard_error_estimate:.2f}")
 
         if test_type == 'multiple_regression':
             model = result['model']
@@ -744,6 +787,8 @@ class HypothesisTestingApp(QMainWindow):
             # Fill the rejection region
             self.canvas.axes.fill_between(x, y, where=(x > critical_value), color='red', alpha=0.5,
                                           label='Rejection Region')
+            self.canvas.axes.axvline(critical_value, color='red', linestyle='--',
+                                     label=f'Critical Value: {critical_value:.4f}')
 
             # Plot the chi-square statistic
             self.canvas.axes.axvline(chi2_stat, color='blue', linestyle='--',

@@ -177,6 +177,7 @@ def hypothesis_testing_variance(data=None, sample_variance=None, sample_size=Non
         'degrees_of_freedom': degrees_of_freedom,
         'p_value': p_value,
         'reject_null': reject_null,
+        'sample_size': sample_size,
         'sample_variance': sample_variance,
         'pop_variance': pop_variance,
         'alpha': alpha,
